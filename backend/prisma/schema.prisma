@@ -1,0 +1,154 @@
+// Reemplaza a Firestore: usuarios y reportes de mascotas en PostgreSQL,
+// con PostGIS para las consultas de cercanía ("avistamientos cerca de mí",
+// "notificar a usuarios cercanos").
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [postgis]
+}
+
+// Los valores de los enums son el contrato de wire compartido con
+// PetSpecies/ReportStatus/HealthCondition en el Flutter app
+// (lib/features/reports/domain/entities/enums/*.dart, `apiValue`).
+enum PetSpecies {
+  cat
+  dog
+}
+
+enum ReportStatus {
+  lost
+  stray
+  found
+}
+
+enum HealthCondition {
+  healthy
+  injured
+  hungry
+  sick
+  has_collar
+  pregnant
+  aggressive
+  other
+}
+
+model User {
+  id           String  @id @default(uuid())
+  email        String  @unique
+  passwordHash String
+  displayName  String?
+  photoUrl     String?
+  phoneNumber  String?
+
+  // Última ubicación conocida, usada para decidir a quién notificar cuando
+  // aparece un reporte cerca (ver NotificationsService.notifyNearbyUsers).
+  lastKnownLatitude    Float?
+  lastKnownLongitude   Float?
+  lastKnownAddress     String?
+  notificationRadiusKm Float    @default(5.0)
+  notificationsEnabled Boolean  @default(true)
+  fcmTokens            String[]
+
+  // Hash bcrypt del refresh token vigente (rotación en cada /auth/refresh).
+  // MVP: un solo refresh token activo por usuario; iniciar sesión en un
+  // dispositivo nuevo invalida el anterior. Para multi-dispositivo real,
+  // migrar a una tabla RefreshToken aparte.
+  refreshTokenHash String?
+
+  // Mismo patrón que refreshTokenHash: se guarda el hash bcrypt del token
+  // de "olvidé mi contraseña" (no el token en texto plano, que solo viaja
+  // por el link del email) junto con su expiración. Se limpian ambos al
+  // usarse o al pedir uno nuevo.
+  resetPasswordTokenHash      String?
+  resetPasswordTokenExpiresAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reports PetReport[]
+
+  // Una conversación tiene dos participantes (userA/userB); un usuario
+  // puede aparecer en cualquiera de los dos roles según quién la inició.
+  conversationsAsUserA Conversation[] @relation("ConversationsAsUserA")
+  conversationsAsUserB Conversation[] @relation("ConversationsAsUserB")
+  messages             Message[]
+
+  @@map("users")
+}
+
+model PetReport {
+  id               String            @id @default(uuid())
+  reporterId       String
+  reporter         User              @relation(fields: [reporterId], references: [id])
+  species          PetSpecies
+  status           ReportStatus
+  healthConditions HealthCondition[]
+  photoUrls        String[]
+
+  // Prisma no tiene un tipo `geography` nativo, así que la ubicación se
+  // guarda como Float/Float normales (ergonómico con Prisma Client para
+  // crear/actualizar) y las consultas de cercanía usan PostGIS vía SQL
+  // crudo en ReportsService.findNearby() sobre estas mismas columnas.
+  latitude  Float
+  longitude Float
+  address   String?
+
+  petName      String?
+  breed        String?
+  color        String?
+  description  String?
+  contactPhone String?
+  isResolved   Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  conversations Conversation[]
+
+  // Índice GIST sobre ST_MakePoint(longitude, latitude): Prisma no soporta
+  // índices de expresión en el schema declarativo, se crea a mano una vez
+  // con prisma/sql/create_indexes.sql después de la primera migración.
+  @@index([reporterId])
+  @@map("pet_reports")
+}
+
+model Conversation {
+  id       String     @id @default(uuid())
+  reportId String?
+  report   PetReport? @relation(fields: [reportId], references: [id])
+
+  // userAId/userBId se normalizan (orden alfabético de los UIDs) antes de
+  // buscar/crear en ChatService.getOrCreateConversation, así el @@unique de
+  // abajo funciona sin importar quién inicia la conversación.
+  userAId String
+  userA   User   @relation("ConversationsAsUserA", fields: [userAId], references: [id])
+  userBId String
+  userB   User   @relation("ConversationsAsUserB", fields: [userBId], references: [id])
+
+  messages Message[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([reportId, userAId, userBId])
+  @@map("conversations")
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  senderId       String
+  sender         User         @relation(fields: [senderId], references: [id])
+  content        String
+
+  createdAt DateTime @default(now())
+
+  @@index([conversationId, createdAt])
+  @@map("messages")
+}
