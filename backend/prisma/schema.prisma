@@ -150,6 +150,13 @@ model Conversation {
   @@map("conversations")
 }
 
+enum MessageType {
+  text
+  image
+  audio
+  file
+}
+
 model Message {
   id             String       @id @default(uuid())
   conversationId String
@@ -157,6 +164,17 @@ model Message {
   senderId       String
   sender         User         @relation(fields: [senderId], references: [id])
   content        String
+  type           MessageType  @default(text)
+
+  // Solo para type != text: `attachmentKey` es la key en el bucket S3/MinIO
+  // (mismo patrón que PetReport.photoUrls — se resuelve a URL pública recién
+  // al responder, ver ChatService). `attachmentName` es el nombre original
+  // del archivo (type file); `attachmentDurationMs`, la duración grabada
+  // (type audio), para pintar el reproductor sin tener que abrir el audio.
+  attachmentKey         String?
+  attachmentName        String?
+  attachmentMimeType    String?
+  attachmentDurationMs  Int?
 
   createdAt DateTime @default(now())
 

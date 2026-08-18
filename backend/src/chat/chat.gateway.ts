@@ -11,7 +11,14 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { NotificationsService } from '../notifications/notifications.service';
-import { ChatService } from './chat.service';
+import { ChatService, MessageResponse } from './chat.service';
+
+/** Etiqueta corta para el cuerpo del push cuando el mensaje no es texto. */
+const ATTACHMENT_PREVIEW: Record<string, string> = {
+  image: '📷 Foto',
+  audio: '🎤 Mensaje de voz',
+  file: '📎 Archivo',
+};
 
 interface AuthenticatedSocket extends Socket {
   data: { userId: string };
@@ -69,21 +76,28 @@ export class ChatGateway implements OnGatewayConnection {
     const content = data.content?.trim();
     if (!content || content.length > 2000) return;
 
-    const { message, recipientId } = await this.chatService.createMessage(
-      data.conversationId,
-      client.data.userId,
+    const { message, recipientId } = await this.chatService.createMessage(data.conversationId, client.data.userId, {
       content,
-    );
-    this.server.to(`conversation:${data.conversationId}`).emit('newMessage', message);
+    });
+    this.broadcast(data.conversationId, message, recipientId);
+  }
 
-    // No bloquea el ack del socket si el push tarda o falla; el destinatario
-    // puede no tener el socket conectado a esta conversación en este momento
-    // (app en background, en otra pantalla), así que el push es la única
-    // forma de que se entere en el momento.
+  /**
+   * Emite el mensaje a quien tenga el socket conectado a esa conversación, y
+   * empuja un push al otro participante (no bloquea si tarda o falla — el
+   * push es la única forma de enterarse si no tiene esa conversación abierta
+   * en este momento). Usado tanto por `sendMessage` (texto, vía socket) como
+   * por `ChatController.addAttachment` (foto/audio/archivo, vía REST — subir
+   * un archivo por un WebSocket no tiene mucho sentido).
+   */
+  broadcast(conversationId: string, message: MessageResponse, recipientId: string): void {
+    this.server.to(`conversation:${conversationId}`).emit('newMessage', message);
+
+    const preview = message.type === 'text' ? message.content : ATTACHMENT_PREVIEW[message.type];
     void this.notifications.notifyUser(recipientId, {
       title: 'Nuevo mensaje',
-      body: content.length > 120 ? `${content.slice(0, 117)}...` : content,
-      data: { type: 'chat', conversationId: data.conversationId },
+      body: preview.length > 120 ? `${preview.slice(0, 117)}...` : preview,
+      data: { type: 'chat', conversationId },
     });
   }
 }

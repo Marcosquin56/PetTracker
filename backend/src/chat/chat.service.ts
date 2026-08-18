@@ -1,19 +1,34 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { Conversation, Message, PetSpecies, Prisma } from '@prisma/client';
+import { Conversation, Message, MessageType, PetSpecies, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { StorageService } from '../storage/storage.service';
+
+export type MessageResponse = Omit<Message, 'attachmentKey'> & { attachmentUrl: string | null };
+
+export interface NewMessageInput {
+  content: string;
+  type?: MessageType;
+  attachmentKey?: string;
+  attachmentName?: string;
+  attachmentMimeType?: string;
+  attachmentDurationMs?: number;
+}
 
 export interface ConversationSummary {
   id: string;
   report: { id: string; petName: string | null; species: PetSpecies } | null;
   otherUser: { id: string; displayName: string | null; photoUrl: string | null };
-  lastMessage: Message | null;
+  lastMessage: MessageResponse | null;
   updatedAt: Date;
   unreadCount: number;
 }
 
 @Injectable()
 export class ChatService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
+  ) {}
 
   /**
    * El otro participante siempre es el dueño del reporte (`report.reporterId`)
@@ -57,10 +72,10 @@ export class ChatService {
     userId: string,
     take: number,
     before?: string,
-  ): Promise<Message[]> {
+  ): Promise<MessageResponse[]> {
     await this.assertParticipant(conversationId, userId);
 
-    return this.prisma.message.findMany({
+    const messages = await this.prisma.message.findMany({
       where: {
         conversationId,
         ...(before && { createdAt: { lt: new Date(before) } }),
@@ -68,30 +83,49 @@ export class ChatService {
       orderBy: { createdAt: 'desc' },
       take,
     });
+
+    return messages.map((message) => this.toMessageResponse(message));
   }
 
   /**
-   * Además de crear el mensaje, "toca" `conversation.updatedAt` (no cambia
-   * ningún otro campo) para poder ordenar `listConversations` por actividad
-   * reciente, y devuelve el id del otro participante para que el gateway
-   * pueda mandarle un push aunque no tenga el socket conectado a esta
-   * conversación en este momento.
+   * Crea un mensaje de texto o con adjunto (foto/audio/archivo — `data.type`
+   * y `data.attachmentKey`, ya subido a S3/MinIO por el caller). Además,
+   * "toca" `conversation.updatedAt` (no cambia ningún otro campo) para poder
+   * ordenar `listConversations` por actividad reciente, y devuelve el id del
+   * otro participante para que el gateway pueda mandarle un push aunque no
+   * tenga el socket conectado a esta conversación en este momento.
    */
   async createMessage(
     conversationId: string,
     senderId: string,
-    content: string,
-  ): Promise<{ message: Message; recipientId: string }> {
+    data: NewMessageInput,
+  ): Promise<{ message: MessageResponse; recipientId: string }> {
     const conversation = await this.getConversationOrThrow(conversationId);
     this.assertIsParticipant(conversation, senderId);
 
     const [message] = await this.prisma.$transaction([
-      this.prisma.message.create({ data: { conversationId, senderId, content } }),
+      this.prisma.message.create({
+        data: {
+          conversationId,
+          senderId,
+          content: data.content,
+          type: data.type ?? MessageType.text,
+          attachmentKey: data.attachmentKey,
+          attachmentName: data.attachmentName,
+          attachmentMimeType: data.attachmentMimeType,
+          attachmentDurationMs: data.attachmentDurationMs,
+        },
+      }),
       this.prisma.conversation.update({ where: { id: conversationId }, data: { updatedAt: new Date() } }),
     ]);
 
     const recipientId = conversation.userAId === senderId ? conversation.userBId : conversation.userAId;
-    return { message, recipientId };
+    return { message: this.toMessageResponse(message), recipientId };
+  }
+
+  private toMessageResponse(message: Message): MessageResponse {
+    const { attachmentKey, ...rest } = message;
+    return { ...rest, attachmentUrl: attachmentKey ? this.storage.resolvePhotoUrl(attachmentKey) : null };
   }
 
   async assertParticipant(conversationId: string, userId: string): Promise<void> {
@@ -126,11 +160,12 @@ export class ChatService {
           },
         });
 
+        const lastMessage = conversation.messages[0];
         return {
           id: conversation.id,
           report: conversation.report,
           otherUser,
-          lastMessage: conversation.messages[0] ?? null,
+          lastMessage: lastMessage ? this.toMessageResponse(lastMessage) : null,
           updatedAt: conversation.updatedAt,
           unreadCount,
         };
