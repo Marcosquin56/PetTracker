@@ -1,45 +1,24 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as nodemailer from 'nodemailer';
-import type SMTPTransport from 'nodemailer/lib/smtp-transport';
 
 /**
- * Sin SMTP_HOST configurado no hay forma de mandar correos reales, así que
- * en ese caso el link se imprime en el log del servidor en vez de fallar:
- * permite probar el flujo de "olvidé mi contraseña" en dev sin credenciales
- * SMTP a mano.
+ * Resend (API HTTP) en vez de SMTP crudo: Render bloquea el tráfico saliente
+ * por el puerto SMTP (confirmado con ENETUNREACH y después "Connection
+ * timeout" incluso forzando IPv4), así que un socket SMTP nunca conecta ahí.
+ * La API de Resend viaja por HTTPS, que sí sale sin bloqueos.
+ *
+ * Sin RESEND_API_KEY configurada, el link se imprime en el log en vez de
+ * fallar: permite probar el flujo de "olvidé mi contraseña" en dev sin key.
  */
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
-  private readonly transporter: nodemailer.Transporter | null;
+  private readonly apiKey: string | undefined;
   private readonly from: string;
 
   constructor(private readonly config: ConfigService) {
-    this.from = this.config.get<string>('SMTP_FROM', 'PetTracker <no-reply@pettracker.app>');
-
-    const host = this.config.get<string>('SMTP_HOST');
-    if (!host) {
-      this.transporter = null;
-      return;
-    }
-
-    // `family` no está en los tipos de nodemailer pero SMTPConnection lo
-    // reenvía tal cual a net.connect/tls.connect.
-    const options: SMTPTransport.Options & { family?: number } = {
-      host,
-      port: this.config.get<number>('SMTP_PORT', 587),
-      secure: this.config.get<string>('SMTP_SECURE', 'false') === 'true',
-      // Algunos hosts (p. ej. Render) resuelven smtp.gmail.com a una IPv6 sin
-      // salida real y el connect() cuelga varios minutos antes de tirar
-      // ENETUNREACH. Forzamos IPv4, que sí tiene salida en esos entornos.
-      family: 4,
-      auth: {
-        user: this.config.get<string>('SMTP_USER'),
-        pass: this.config.get<string>('SMTP_PASS'),
-      },
-    };
-    this.transporter = nodemailer.createTransport(options);
+    this.apiKey = this.config.get<string>('RESEND_API_KEY') || undefined;
+    this.from = this.config.get<string>('MAIL_FROM', 'PetTracker <no-reply@pettracker.app>');
   }
 
   async sendPasswordReset(to: string, resetUrl: string): Promise<void> {
@@ -57,13 +36,25 @@ export class MailService {
       </div>
     `;
 
-    if (!this.transporter) {
+    if (!this.apiKey) {
       this.logger.warn(
-        `SMTP no configurado. Link de recuperación para ${to}: ${resetUrl}`,
+        `RESEND_API_KEY no configurada. Link de recuperación para ${to}: ${resetUrl}`,
       );
       return;
     }
 
-    await this.transporter.sendMail({ from: this.from, to, subject, html });
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ from: this.from, to, subject, html }),
+    });
+
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`Resend respondió ${response.status}: ${body}`);
+    }
   }
 }
