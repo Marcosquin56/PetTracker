@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/enums/pet_species.dart';
 import '../../domain/entities/enums/report_status.dart';
 
@@ -9,11 +10,11 @@ extension ReportStatusStyle on ReportStatus {
   Color get color {
     switch (this) {
       case ReportStatus.lost:
-        return const Color(0xFFD32F2F);
+        return AppTheme.statusLost;
       case ReportStatus.stray:
-        return const Color(0xFFEF6C00);
+        return AppTheme.statusStray;
       case ReportStatus.found:
-        return const Color(0xFF2E7D32);
+        return AppTheme.statusFound;
     }
   }
 

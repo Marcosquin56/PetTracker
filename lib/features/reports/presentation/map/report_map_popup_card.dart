@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/theme/app_icons.dart';
 import '../../application/reports_providers.dart';
 import '../../domain/entities/pet_report_entity.dart';
 import '../utils/status_style.dart';
@@ -108,7 +109,7 @@ class ReportMapPopupCard extends ConsumerWidget {
                 ),
                 IconButton(
                   visualDensity: VisualDensity.compact,
-                  icon: Icon(Icons.directions, color: colorScheme.primary),
+                  icon: AppIconWidget(AppIcon.directions, color: colorScheme.primary, size: 19),
                   tooltip: 'Cómo llegar',
                   onPressed: () => _openDirections(context, report),
                 ),

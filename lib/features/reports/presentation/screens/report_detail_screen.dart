@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/theme/app_icons.dart';
 import '../../../auth/application/auth_controller.dart';
 import '../../../chat/application/chat_providers.dart';
 import '../../application/reports_feed_controller.dart';
@@ -239,7 +240,7 @@ class _ReportDetailBodyState extends ConsumerState<_ReportDetailBody> {
                     alignment: Alignment.centerRight,
                     child: TextButton.icon(
                       onPressed: () => _openDirections(context),
-                      icon: const Icon(Icons.directions),
+                      icon: AppIconWidget(AppIcon.directions, color: colorScheme.secondary, size: 17),
                       label: const Text('Cómo llegar'),
                     ),
                   ),
@@ -275,9 +276,9 @@ class _ReportDetailBodyState extends ConsumerState<_ReportDetailBody> {
                           ? const SizedBox(
                               width: 16,
                               height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                             )
-                          : const Icon(Icons.chat_bubble_outline),
+                          : AppIconWidget(AppIcon.chat, color: colorScheme.onPrimary, size: 18),
                       label: const Text('Chatear'),
                     ),
                   ],
@@ -285,7 +286,7 @@ class _ReportDetailBodyState extends ConsumerState<_ReportDetailBody> {
                     const SizedBox(height: 12),
                     OutlinedButton.icon(
                       onPressed: () => _callContact(context),
-                      icon: const Icon(Icons.phone),
+                      icon: AppIconWidget(AppIcon.phone, color: colorScheme.onSurface, size: 17),
                       label: Text('Llamar (${report.contactPhone})'),
                     ),
                   ],

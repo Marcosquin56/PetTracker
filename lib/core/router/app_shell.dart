@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/chat/application/chat_providers.dart';
+import '../theme/app_icons.dart';
 
 /// Scaffold con la barra de navegación inferior (Inicio/Mapa/Aliados/Chats/
 /// Perfil). Cada pestaña es un branch de `StatefulShellRoute.indexedStack`
@@ -17,6 +18,13 @@ class AppShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final unreadChats = ref.watch(unreadChatsCountProvider);
+    final colorScheme = Theme.of(context).colorScheme;
+    final inactiveColor = colorScheme.onSurfaceVariant;
+    final activeColor = colorScheme.onPrimaryContainer;
+
+    Widget navIcon(AppIcon icon, {required bool selected}) {
+      return AppIconWidget(icon, color: selected ? activeColor : inactiveColor, size: 21);
+    }
 
     return Scaffold(
       body: navigationShell,
@@ -29,33 +37,37 @@ class AppShell extends ConsumerWidget {
           initialLocation: index == navigationShell.currentIndex,
         ),
         destinations: [
-          const NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
+          NavigationDestination(
+            icon: navIcon(AppIcon.home, selected: false),
+            selectedIcon: navIcon(AppIcon.home, selected: true),
             label: 'Inicio',
           ),
-          const NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map), label: 'Mapa'),
-          const NavigationDestination(
-            icon: Icon(Icons.pets_outlined),
-            selectedIcon: Icon(Icons.pets),
+          NavigationDestination(
+            icon: navIcon(AppIcon.map, selected: false),
+            selectedIcon: navIcon(AppIcon.map, selected: true),
+            label: 'Mapa',
+          ),
+          NavigationDestination(
+            icon: navIcon(AppIcon.aliados, selected: false),
+            selectedIcon: navIcon(AppIcon.aliados, selected: true),
             label: 'Aliados',
           ),
           NavigationDestination(
             icon: Badge(
               isLabelVisible: unreadChats > 0,
               label: Text('$unreadChats'),
-              child: const Icon(Icons.chat_bubble_outline),
+              child: navIcon(AppIcon.chat, selected: false),
             ),
             selectedIcon: Badge(
               isLabelVisible: unreadChats > 0,
               label: Text('$unreadChats'),
-              child: const Icon(Icons.chat_bubble),
+              child: navIcon(AppIcon.chat, selected: true),
             ),
             label: 'Chats',
           ),
-          const NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
+          NavigationDestination(
+            icon: navIcon(AppIcon.profile, selected: false),
+            selectedIcon: navIcon(AppIcon.profile, selected: true),
             label: 'Perfil',
           ),
         ],

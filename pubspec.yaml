@@ -45,6 +45,10 @@ dependencies:
   file_picker: ^8.1.4
   path_provider: ^2.1.5
 
+  # --- Diseño: íconos dibujados a mano (la tipografía cálida se bundlea
+  # directo como asset más abajo, no hace falta google_fonts) ---
+  flutter_svg: ^2.0.10+1
+
   # --- Modelos / utilidades ---
   equatable: ^2.0.5
   intl: ^0.19.0
@@ -80,3 +84,30 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
+
+  # Bundleadas en vez de con la carga en runtime de google_fonts (evita
+  # depender de red al abrir la app, y el "flash" de tipografía por defecto
+  # mientras se descarga). Son fuentes variables (un solo .ttf, eje "wght"):
+  # se listan varias veces con `weight` distinto, Flutter elige la instancia
+  # correcta de cada una.
+  fonts:
+    - family: Baloo2
+      fonts:
+        - asset: assets/fonts/Baloo2-Variable.ttf
+          weight: 500
+        - asset: assets/fonts/Baloo2-Variable.ttf
+          weight: 600
+        - asset: assets/fonts/Baloo2-Variable.ttf
+          weight: 700
+        - asset: assets/fonts/Baloo2-Variable.ttf
+          weight: 800
+    - family: Nunito
+      fonts:
+        - asset: assets/fonts/Nunito-Variable.ttf
+          weight: 400
+        - asset: assets/fonts/Nunito-Variable.ttf
+          weight: 600
+        - asset: assets/fonts/Nunito-Variable.ttf
+          weight: 700
+        - asset: assets/fonts/Nunito-Variable.ttf
+          weight: 800
