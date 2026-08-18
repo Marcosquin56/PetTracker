@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
 import { IsLatitude, IsLongitude, IsNumber, IsOptional, IsPositive, Max } from 'class-validator';
 
+/** Query compartida por los endpoints `/nearby` (reports, adoption-centers, vets). */
 export class NearbyQueryDto {
   @Type(() => Number)
   @IsLatitude()

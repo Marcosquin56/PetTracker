@@ -23,6 +23,9 @@ class ReportRepositoryImpl implements ReportRepository {
   Future<PetReportEntity> getById(String id) => _remote.getById(id);
 
   @override
+  Future<List<PetReportEntity>> getByReporter(String reporterId) => _remote.getRecent(reporterId: reporterId);
+
+  @override
   Future<PetReportEntity> create(CreateReportInput input) => _remote.create(input);
 
   @override

@@ -13,6 +13,10 @@ abstract class ReportRepository {
 
   Future<PetReportEntity> getById(String id);
 
+  /// Todos los reportes hechos por `reporterId` (incluye resueltos) — para
+  /// la grilla "Mis reportes" del perfil.
+  Future<List<PetReportEntity>> getByReporter(String reporterId);
+
   Future<PetReportEntity> create(CreateReportInput input);
 
   Future<PetReportEntity> addPhoto(String reportId, XFile photo);

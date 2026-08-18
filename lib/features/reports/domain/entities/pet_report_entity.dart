@@ -25,6 +25,8 @@ class PetReportEntity extends Equatable {
     this.description,
     this.contactPhone,
     this.isResolved = false,
+    this.reporterName,
+    this.reporterPhotoUrl,
   });
 
   /// ID del documento en Firestore.
@@ -32,6 +34,11 @@ class PetReportEntity extends Equatable {
 
   /// UID del usuario (Firebase Auth) que creó el reporte.
   final String reporterId;
+
+  /// Nombre/foto del reportero, para el link "Reportado por" del detalle y
+  /// para poder navegar a `/profile/:reporterId`.
+  final String? reporterName;
+  final String? reporterPhotoUrl;
 
   final PetSpecies species;
   final ReportStatus status;
@@ -95,6 +102,8 @@ class PetReportEntity extends Equatable {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isResolved: isResolved ?? this.isResolved,
+      reporterName: reporterName,
+      reporterPhotoUrl: reporterPhotoUrl,
     );
   }
 
@@ -115,5 +124,7 @@ class PetReportEntity extends Equatable {
         createdAt,
         updatedAt,
         isResolved,
+        reporterName,
+        reporterPhotoUrl,
       ];
 }

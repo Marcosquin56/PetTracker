@@ -1,19 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/network_providers.dart';
-import '../../../core/services/location_service.dart';
-import '../../../shared/models/geo_location.dart';
 import '../data/datasources/reports_remote_datasource.dart';
 import '../data/repositories/report_repository_impl.dart';
 import '../domain/repositories/report_repository.dart';
 
-final locationServiceProvider = Provider<LocationService>((ref) => const LocationService());
-
-/// Ubicación actual del dispositivo, usada por el feed (ordenar por
-/// distancia) y por `ReportCard` (mostrar "X km" en cada tarjeta).
-final currentLocationProvider = FutureProvider<GeoLocation?>((ref) {
-  return ref.watch(locationServiceProvider).getCurrentLocation();
-});
+// locationServiceProvider/currentLocationProvider viven en core/providers
+// (compartidos con vets/adoption_centers); se re-exportan acá para no
+// romper los imports existentes de este archivo en el resto de `reports`.
+export '../../../core/providers/location_providers.dart';
 
 final reportsRemoteDataSourceProvider = Provider<ReportsRemoteDataSource>((ref) {
   return ReportsRemoteDataSource(ref.watch(apiClientProvider).dio);
@@ -27,8 +22,9 @@ final reportByIdProvider = FutureProvider.family((ref, String id) {
   return ref.watch(reportRepositoryProvider).getById(id);
 });
 
-enum ReportsViewMode { list, map }
-
-/// Toggle lista/mapa de HomeScreen. Vive acá (no en un StatefulWidget) para
-/// que sobreviva si HomeScreen se reconstruye por otros providers.
-final reportsViewModeProvider = StateProvider<ReportsViewMode>((ref) => ReportsViewMode.list);
+/// Historial de reportes de un usuario puntual — lo usa el perfil (propio y
+/// ajeno) para la grilla "Mis reportes" (ver ReportsService.findRecent del
+/// backend, filtro `reporterId`).
+final reportsByReporterProvider = FutureProvider.autoDispose.family((ref, String reporterId) {
+  return ref.watch(reportRepositoryProvider).getByReporter(reporterId);
+});

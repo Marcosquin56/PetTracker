@@ -221,8 +221,32 @@ class _ReportDetailBodyState extends ConsumerState<_ReportDetailBody> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 16),
+                  InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () => context.push('/profile/${report.reporterId}'),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 16,
+                            foregroundImage: report.reporterPhotoUrl != null
+                                ? CachedNetworkImageProvider(report.reporterPhotoUrl!)
+                                : null,
+                            child: const Icon(Icons.person_outline, size: 16),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text('Reportado por ${report.reporterName ?? 'un usuario'}'),
+                          ),
+                          const Icon(Icons.chevron_right, size: 18),
+                        ],
+                      ),
+                    ),
+                  ),
                   if (!isOwner) ...[
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 8),
                     FilledButton.icon(
                       onPressed: _isOpeningChat ? null : () => _openChat(context, ref),
                       icon: _isOpeningChat

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/network/api_client.dart';
 import '../../../../shared/models/geo_location.dart';
@@ -71,4 +72,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<UserProfileEntity> registerFcmToken(String token) => _remote.addFcmToken(token);
+
+  @override
+  Future<UserProfileEntity> updatePhoto(XFile photo) => _remote.updateMyPhoto(photo);
 }

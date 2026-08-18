@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../models/user_profile_model.dart';
 
@@ -47,6 +48,14 @@ class AuthRemoteDataSource {
 
   Future<UserProfileModel> updateMe(Map<String, dynamic> patch) async {
     final response = await _dio.patch<Map<String, dynamic>>('/users/me', data: patch);
+    return UserProfileModel.fromJson(response.data!);
+  }
+
+  Future<UserProfileModel> updateMyPhoto(XFile photo) async {
+    final formData = FormData.fromMap({
+      'file': await MultipartFile.fromFile(photo.path, filename: photo.name),
+    });
+    final response = await _dio.post<Map<String, dynamic>>('/users/me/photo', data: formData);
     return UserProfileModel.fromJson(response.data!);
   }
 

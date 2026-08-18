@@ -78,6 +78,11 @@ model User {
   conversationsAsUserB Conversation[] @relation("ConversationsAsUserB")
   messages             Message[]
 
+  // Calificaciones de perfil (ver UserRating): un usuario puede calificar a
+  // otro solo si comparten una Conversation (UsersService.rateUser).
+  ratingsGiven    UserRating[] @relation("RatingsGiven")
+  ratingsReceived UserRating[] @relation("RatingsReceived")
+
   @@map("users")
 }
 
@@ -151,4 +156,48 @@ model Message {
 
   @@index([conversationId, createdAt])
   @@map("messages")
+}
+
+// Calificación de un usuario a otro (perfil público). Un solo rating por
+// par (rater, calificado): volver a calificar hace upsert (UsersService).
+// La regla de "solo si compartís una Conversation" y "no autocalificarte"
+// se valida en el service, no acá — Prisma no expresa esa condición.
+model UserRating {
+  id          String @id @default(uuid())
+  raterId     String
+  rater       User   @relation("RatingsGiven", fields: [raterId], references: [id])
+  ratedUserId String
+  ratedUser   User   @relation("RatingsReceived", fields: [ratedUserId], references: [id])
+  score       Int
+  comment     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([raterId, ratedUserId])
+  @@map("user_ratings")
+}
+
+// Casas de adopción: lista curada a mano (ver prisma/seed.ts), no hay CRUD
+// de usuario para esto. address/latitude/longitude son opcionales porque no
+// todas las casas que nos pasan tienen una dirección o ubicación precisa
+// todavía; mapsUrl guarda un link de Google Maps como fallback para "Cómo
+// llegar" cuando no hay lat/lng.
+model AdoptionCenter {
+  id          String  @id @default(uuid())
+  name        String
+  address     String?
+  phone       String?
+  whatsapp    String?
+  email       String?
+  description String?
+  photoUrl    String?
+  mapsUrl     String?
+  latitude    Float?
+  longitude   Float?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("adoption_centers")
 }

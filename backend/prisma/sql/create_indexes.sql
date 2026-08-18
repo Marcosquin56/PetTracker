@@ -13,3 +13,8 @@ CREATE INDEX IF NOT EXISTS users_geo_idx
   ON "users"
   USING GIST (ST_SetSRID(ST_MakePoint("lastKnownLongitude", "lastKnownLatitude"), 4326))
   WHERE "lastKnownLatitude" IS NOT NULL AND "lastKnownLongitude" IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS adoption_centers_geo_idx
+  ON "adoption_centers"
+  USING GIST (ST_SetSRID(ST_MakePoint("longitude", "latitude"), 4326))
+  WHERE "latitude" IS NOT NULL AND "longitude" IS NOT NULL;

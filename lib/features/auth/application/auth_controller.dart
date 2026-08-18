@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../core/network/network_providers.dart';
 import '../../../core/services/push_service.dart';
@@ -97,5 +98,9 @@ class AuthController extends AsyncNotifier<UserProfileEntity?> {
   Future<void> registerFcmToken(String token) async {
     final updated = await ref.read(authRepositoryProvider).registerFcmToken(token);
     state = AsyncData(updated);
+  }
+
+  Future<void> updatePhoto(XFile photo) async {
+    state = await AsyncValue.guard(() => ref.read(authRepositoryProvider).updatePhoto(photo));
   }
 }

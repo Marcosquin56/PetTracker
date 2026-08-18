@@ -18,8 +18,8 @@ const ALLOWED_PHOTO_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { JwtPayload } from '../auth/strategies/jwt.strategy';
+import { NearbyQueryDto } from '../common/dto/nearby-query.dto';
 import { CreateReportDto } from './dto/create-report.dto';
-import { NearbyQueryDto } from './dto/nearby-query.dto';
 import { UpdateReportDto } from './dto/update-report.dto';
 import { ReportsService } from './reports.service';
 
@@ -28,8 +28,8 @@ export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
   @Get()
-  findRecent() {
-    return this.reportsService.findRecent();
+  findRecent(@Query('reporterId') reporterId?: string) {
+    return this.reportsService.findRecent(50, reporterId);
   }
 
   @Get('nearby')

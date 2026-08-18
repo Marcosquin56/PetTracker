@@ -23,6 +23,8 @@ class PetReportModel extends PetReportEntity {
     super.description,
     super.contactPhone,
     super.isResolved,
+    super.reporterName,
+    super.reporterPhotoUrl,
   });
 
   factory PetReportModel.fromEntity(PetReportEntity entity) {
@@ -42,6 +44,8 @@ class PetReportModel extends PetReportEntity {
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
       isResolved: entity.isResolved,
+      reporterName: entity.reporterName,
+      reporterPhotoUrl: entity.reporterPhotoUrl,
     );
   }
 
@@ -64,6 +68,8 @@ class PetReportModel extends PetReportEntity {
       createdAt: DateTime.parse(json['createdAt'] as String).toUtc(),
       updatedAt: DateTime.parse(json['updatedAt'] as String).toUtc(),
       isResolved: json['isResolved'] as bool? ?? false,
+      reporterName: json['reporterName'] as String?,
+      reporterPhotoUrl: json['reporterPhotoUrl'] as String?,
     );
   }
 

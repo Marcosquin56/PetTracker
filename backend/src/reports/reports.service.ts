@@ -1,20 +1,28 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { PetReport } from '@prisma/client';
+import { PetReport, User } from '@prisma/client';
+import { NearbyQueryDto } from '../common/dto/nearby-query.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { CreateReportDto } from './dto/create-report.dto';
-import { NearbyQueryDto } from './dto/nearby-query.dto';
 import { UpdateReportDto } from './dto/update-report.dto';
+
+type ReportWithReporter = PetReport & { reporter: Pick<User, 'displayName' | 'photoUrl'> };
 
 interface RawNearbyReport extends PetReport {
   distanceKm: number;
+  reporterName: string | null;
+  reporterPhotoUrl: string | null;
 }
 
 export type ReportResponse = Omit<PetReport, 'latitude' | 'longitude' | 'address'> & {
   location: { latitude: number; longitude: number; address: string | null };
+  reporterName: string | null;
+  reporterPhotoUrl: string | null;
   distanceKm?: number;
 };
+
+const REPORTER_SELECT = { select: { displayName: true, photoUrl: true } };
 
 @Injectable()
 export class ReportsService {
@@ -41,6 +49,7 @@ export class ReportsService {
         description: dto.description,
         contactPhone: dto.contactPhone,
       },
+      include: { reporter: REPORTER_SELECT },
     });
 
     // No bloquea la respuesta al usuario que reporta si el push falla.
@@ -53,12 +62,18 @@ export class ReportsService {
     return this.toResponse(await this.getRawById(id));
   }
 
-  /** Reportes recientes sin resolver, sin filtro de ubicación (feed general). */
-  async findRecent(take = 50): Promise<ReportResponse[]> {
+  /**
+   * Reportes recientes sin resolver, sin filtro de ubicación (feed
+   * general). `reporterId` filtra al historial de reportes de un usuario
+   * puntual — lo usa el perfil (propio y ajeno), ahí sí incluye resueltos
+   * porque es "todo lo que reportó", no un feed de cosas por resolver.
+   */
+  async findRecent(take = 50, reporterId?: string): Promise<ReportResponse[]> {
     const reports = await this.prisma.petReport.findMany({
-      where: { isResolved: false },
+      where: reporterId ? { reporterId } : { isResolved: false },
       orderBy: { createdAt: 'desc' },
       take,
+      include: { reporter: REPORTER_SELECT },
     });
     return reports.map((report) => this.toResponse(report));
   }
@@ -73,15 +88,18 @@ export class ReportsService {
     const radiusMeters = radiusKm * 1000;
 
     const rows = await this.prisma.$queryRaw<RawNearbyReport[]>`
-      SELECT *,
+      SELECT pr.*,
+        u."displayName" AS "reporterName",
+        u."photoUrl" AS "reporterPhotoUrl",
         ST_Distance(
-          ST_SetSRID(ST_MakePoint("longitude", "latitude"), 4326)::geography,
+          ST_SetSRID(ST_MakePoint(pr."longitude", pr."latitude"), 4326)::geography,
           ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography
         ) / 1000 AS "distanceKm"
-      FROM "pet_reports"
-      WHERE "isResolved" = false
+      FROM "pet_reports" pr
+      JOIN "users" u ON u.id = pr."reporterId"
+      WHERE pr."isResolved" = false
         AND ST_DWithin(
-          ST_SetSRID(ST_MakePoint("longitude", "latitude"), 4326)::geography,
+          ST_SetSRID(ST_MakePoint(pr."longitude", pr."latitude"), 4326)::geography,
           ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
           ${radiusMeters}
         )
@@ -109,6 +127,7 @@ export class ReportsService {
           address: location.address,
         }),
       },
+      include: { reporter: REPORTER_SELECT },
     });
     return this.toResponse(updated);
   }
@@ -123,27 +142,69 @@ export class ReportsService {
     const updated = await this.prisma.petReport.update({
       where: { id },
       data: { photoUrls: { push: key } },
+      include: { reporter: REPORTER_SELECT },
     });
     return this.toResponse(updated);
   }
 
-  private async getRawById(id: string): Promise<PetReport> {
-    const report = await this.prisma.petReport.findUnique({ where: { id } });
+  private async getRawById(id: string): Promise<ReportWithReporter> {
+    const report = await this.prisma.petReport.findUnique({
+      where: { id },
+      include: { reporter: REPORTER_SELECT },
+    });
     if (!report) throw new NotFoundException('Reporte no encontrado.');
     return report;
   }
 
   /**
    * Anida latitude/longitude/address en `location` para calzar con
-   * GeoLocation.fromJson() del lado Flutter, y resuelve `photoUrls` (keys
-   * guardadas en la DB) a URLs públicas con el `S3_PUBLIC_BASE_URL` vigente.
+   * GeoLocation.fromJson() del lado Flutter, resuelve `photoUrls` (keys
+   * guardadas en la DB) a URLs públicas con el `S3_PUBLIC_BASE_URL` vigente,
+   * y aplana el reportero a reporterName/reporterPhotoUrl (nunca exponer el
+   * resto del User acá — ver toPublicUser en UsersService para eso).
    */
-  private toResponse(report: PetReport, distanceKm?: number): ReportResponse {
-    const { latitude, longitude, address, photoUrls, ...rest } = report;
+  private toResponse(report: ReportWithReporter | RawNearbyReport, distanceKm?: number): ReportResponse {
+    const reporterName = 'reporter' in report ? report.reporter.displayName : report.reporterName;
+    const reporterPhotoKey = 'reporter' in report ? report.reporter.photoUrl : report.reporterPhotoUrl;
+
+    const {
+      latitude,
+      longitude,
+      address,
+      photoUrls,
+      reporterId,
+      species,
+      status,
+      healthConditions,
+      petName,
+      breed,
+      color,
+      description,
+      contactPhone,
+      isResolved,
+      id,
+      createdAt,
+      updatedAt,
+    } = report;
+
     return {
-      ...rest,
+      id,
+      reporterId,
+      species,
+      status,
+      healthConditions,
       photoUrls: photoUrls.map((key) => this.storage.resolvePhotoUrl(key)),
       location: { latitude, longitude, address },
+      petName,
+      breed,
+      color,
+      description,
+      contactPhone,
+      isResolved,
+      createdAt,
+      updatedAt,
+      reporterName,
+      reporterPhotoUrl: reporterPhotoKey ? this.storage.resolvePhotoUrl(reporterPhotoKey) : null,
       ...(distanceKm !== undefined && { distanceKm }),
     };
   }

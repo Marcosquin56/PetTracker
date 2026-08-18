@@ -1,3 +1,5 @@
+import 'package:image_picker/image_picker.dart';
+
 import '../../../../shared/models/geo_location.dart';
 import '../entities/user_profile_entity.dart';
 
@@ -30,4 +32,6 @@ abstract class AuthRepository {
   });
 
   Future<UserProfileEntity> registerFcmToken(String token);
+
+  Future<UserProfileEntity> updatePhoto(XFile photo);
 }

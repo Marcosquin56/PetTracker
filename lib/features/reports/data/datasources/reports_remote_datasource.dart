@@ -10,8 +10,11 @@ class ReportsRemoteDataSource {
 
   final Dio _dio;
 
-  Future<List<PetReportModel>> getRecent() async {
-    final response = await _dio.get<List<dynamic>>('/reports');
+  Future<List<PetReportModel>> getRecent({String? reporterId}) async {
+    final response = await _dio.get<List<dynamic>>(
+      '/reports',
+      queryParameters: {if (reporterId != null) 'reporterId': reporterId},
+    );
     return _toModelList(response.data!);
   }
 
