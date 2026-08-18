@@ -8,6 +8,7 @@ export interface ConversationSummary {
   otherUser: { id: string; displayName: string | null; photoUrl: string | null };
   lastMessage: Message | null;
   updatedAt: Date;
+  unreadCount: number;
 }
 
 @Injectable()
@@ -111,15 +112,41 @@ export class ChatService {
       },
     });
 
-    return conversations.map((conversation) => {
-      const otherUser = conversation.userAId === userId ? conversation.userB : conversation.userA;
-      return {
-        id: conversation.id,
-        report: conversation.report,
-        otherUser,
-        lastMessage: conversation.messages[0] ?? null,
-        updatedAt: conversation.updatedAt,
-      };
+    return Promise.all(
+      conversations.map(async (conversation) => {
+        const otherUser = conversation.userAId === userId ? conversation.userB : conversation.userA;
+        const lastReadAt =
+          conversation.userAId === userId ? conversation.lastReadAtUserA : conversation.lastReadAtUserB;
+
+        const unreadCount = await this.prisma.message.count({
+          where: {
+            conversationId: conversation.id,
+            senderId: { not: userId },
+            ...(lastReadAt && { createdAt: { gt: lastReadAt } }),
+          },
+        });
+
+        return {
+          id: conversation.id,
+          report: conversation.report,
+          otherUser,
+          lastMessage: conversation.messages[0] ?? null,
+          updatedAt: conversation.updatedAt,
+          unreadCount,
+        };
+      }),
+    );
+  }
+
+  /** Marca la conversación como leída hasta ahora para `userId`. */
+  async markAsRead(conversationId: string, userId: string): Promise<void> {
+    const conversation = await this.getConversationOrThrow(conversationId);
+    this.assertIsParticipant(conversation, userId);
+
+    const field = conversation.userAId === userId ? 'lastReadAtUserA' : 'lastReadAtUserB';
+    await this.prisma.conversation.update({
+      where: { id: conversationId },
+      data: { [field]: new Date() },
     });
   }
 

@@ -135,6 +135,12 @@ model Conversation {
   userBId String
   userB   User   @relation("ConversationsAsUserB", fields: [userBId], references: [id])
 
+  // Cursor de lectura por participante: mensajes de la conversación con
+  // `createdAt` posterior al de ESE usuario cuentan como no leídos para él
+  // (ver ChatService.listConversations/markAsRead). `null` = nunca la abrió.
+  lastReadAtUserA DateTime?
+  lastReadAtUserB DateTime?
+
   messages Message[]
 
   createdAt DateTime @default(now())
