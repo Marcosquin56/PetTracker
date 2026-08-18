@@ -148,7 +148,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _recordingTimer?.cancel();
     final recorded = await ref.read(audioRecorderServiceProvider).stop();
     if (mounted) setState(() => _isRecording = false);
-    if (recorded == null) return;
+    if (recorded == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo grabar el audio. Probá de nuevo.')),
+        );
+      }
+      return;
+    }
     await _sendAttachment(
       filePath: recorded.path,
       fileName: 'audio.m4a',
@@ -180,6 +187,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final state = ref.watch(provider);
     final currentUserId = ref.watch(authControllerProvider).valueOrNull?.uid;
     final colorScheme = Theme.of(context).colorScheme;
+
+    // `watch` (no `read`) es clave: audioRecorderServiceProvider es
+    // autoDispose, así que sin un listener activo Riverpod lo destruye y
+    // recrea entre que se arranca a grabar y se toca "enviar" — el
+    // grabador "nuevo" nunca arrancó nada, `.stop()` devuelve null y el
+    // audio se pierde en silencio. Mismo patrón que chatSocketService más
+    // abajo en chat_providers.dart.
+    ref.watch(audioRecorderServiceProvider);
 
     ref.listen(provider, (previous, next) {
       if (next.messages.length != (previous?.messages.length ?? 0)) {
