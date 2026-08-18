@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
+import type SMTPTransport from 'nodemailer/lib/smtp-transport';
 
 /**
  * Sin SMTP_HOST configurado no hay forma de mandar correos reales, así que
@@ -23,15 +24,22 @@ export class MailService {
       return;
     }
 
-    this.transporter = nodemailer.createTransport({
+    // `family` no está en los tipos de nodemailer pero SMTPConnection lo
+    // reenvía tal cual a net.connect/tls.connect.
+    const options: SMTPTransport.Options & { family?: number } = {
       host,
       port: this.config.get<number>('SMTP_PORT', 587),
       secure: this.config.get<string>('SMTP_SECURE', 'false') === 'true',
+      // Algunos hosts (p. ej. Render) resuelven smtp.gmail.com a una IPv6 sin
+      // salida real y el connect() cuelga varios minutos antes de tirar
+      // ENETUNREACH. Forzamos IPv4, que sí tiene salida en esos entornos.
+      family: 4,
       auth: {
         user: this.config.get<string>('SMTP_USER'),
         pass: this.config.get<string>('SMTP_PASS'),
       },
-    });
+    };
+    this.transporter = nodemailer.createTransport(options);
   }
 
   async sendPasswordReset(to: string, resetUrl: string): Promise<void> {
