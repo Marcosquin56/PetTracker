@@ -41,4 +41,27 @@ class ChatRemoteDataSource {
   Future<void> markAsRead(String conversationId) async {
     await _dio.post<void>('/chat/conversations/$conversationId/read');
   }
+
+  /// Sube un adjunto (foto/audio/archivo) y crea el mensaje en el mismo
+  /// paso — a diferencia del texto, que va por [ChatSocketService].
+  Future<ChatMessageModel> uploadAttachment(
+    String conversationId, {
+    required String filePath,
+    required String fileName,
+    required String type,
+    String? caption,
+    int? durationMs,
+  }) async {
+    final formData = FormData.fromMap({
+      'file': await MultipartFile.fromFile(filePath, filename: fileName),
+      'type': type,
+      if (caption != null && caption.isNotEmpty) 'caption': caption,
+      if (durationMs != null) 'durationMs': durationMs,
+    });
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/chat/conversations/$conversationId/attachments',
+      data: formData,
+    );
+    return ChatMessageModel.fromJson(response.data!);
+  }
 }

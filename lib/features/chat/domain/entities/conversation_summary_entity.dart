@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 import '../../../reports/domain/entities/enums/pet_species.dart';
+import 'chat_message_entity.dart';
 
 /// Una fila del inbox de chats: la conversación + el otro participante +
 /// el último mensaje, ya resueltos por el backend (GET /chat/conversations)
@@ -17,6 +18,7 @@ class ConversationSummaryEntity extends Equatable {
     required this.lastMessageContent,
     required this.lastMessageAt,
     required this.updatedAt,
+    this.lastMessageType,
     this.unreadCount = 0,
   });
 
@@ -30,9 +32,28 @@ class ConversationSummaryEntity extends Equatable {
   final String? lastMessageContent;
   final DateTime? lastMessageAt;
   final DateTime updatedAt;
+  final ChatMessageType? lastMessageType;
   final int unreadCount;
 
   bool get hasUnread => unreadCount > 0;
+
+  /// Texto para la fila del inbox: el contenido tal cual si es texto (o el
+  /// caption de un adjunto, si le pusieron uno), o una etiqueta genérica
+  /// según el tipo cuando no hay texto que mostrar (p. ej. una foto sin pie).
+  String get lastMessagePreview {
+    if (lastMessageContent != null && lastMessageContent!.isNotEmpty) return lastMessageContent!;
+    switch (lastMessageType) {
+      case ChatMessageType.image:
+        return '📷 Foto';
+      case ChatMessageType.audio:
+        return '🎤 Mensaje de voz';
+      case ChatMessageType.file:
+        return '📎 Archivo';
+      case ChatMessageType.text:
+      case null:
+        return '';
+    }
+  }
 
   @override
   List<Object?> get props => [
@@ -46,6 +67,7 @@ class ConversationSummaryEntity extends Equatable {
         lastMessageContent,
         lastMessageAt,
         updatedAt,
+        lastMessageType,
         unreadCount,
       ];
 }

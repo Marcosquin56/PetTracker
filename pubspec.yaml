@@ -39,6 +39,12 @@ dependencies:
   image_picker: ^1.1.2
   cached_network_image: ^3.4.1
 
+  # --- Adjuntos de chat: foto (image_picker arriba), audio y archivos ---
+  record: ^7.1.1
+  just_audio: ^0.9.42
+  file_picker: ^8.1.4
+  path_provider: ^2.1.5
+
   # --- Modelos / utilidades ---
   equatable: ^2.0.5
   intl: ^0.19.0

@@ -22,4 +22,22 @@ class ChatRepositoryImpl implements ChatRepository {
 
   @override
   Future<void> markAsRead(String conversationId) => _remote.markAsRead(conversationId);
+
+  @override
+  Future<ChatMessageEntity> uploadAttachment(
+    String conversationId, {
+    required String filePath,
+    required String fileName,
+    required String type,
+    String? caption,
+    int? durationMs,
+  }) =>
+      _remote.uploadAttachment(
+        conversationId,
+        filePath: filePath,
+        fileName: fileName,
+        type: type,
+        caption: caption,
+        durationMs: durationMs,
+      );
 }

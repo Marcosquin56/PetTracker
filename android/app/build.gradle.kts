@@ -9,7 +9,9 @@ plugins {
 
 android {
     namespace = "com.example.pettracker"
-    compileSdk = flutter.compileSdkVersion
+    // file_picker (vía flutter_plugin_android_lifecycle) exige compileSdk 36;
+    // el default de Flutter en este momento es más viejo, así que se fija a mano.
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

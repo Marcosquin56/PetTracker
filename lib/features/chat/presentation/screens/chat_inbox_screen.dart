@@ -84,9 +84,10 @@ class _ConversationTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasUnread = conversation.hasUnread;
     final title = conversation.otherUserDisplayName ?? 'Usuario';
+    final lastMessagePreview = conversation.lastMessageAt != null ? conversation.lastMessagePreview : '';
     final subtitleParts = [
       if (conversation.petName != null) conversation.petName!,
-      if (conversation.lastMessageContent != null) conversation.lastMessageContent!,
+      if (lastMessagePreview.isNotEmpty) lastMessagePreview,
     ];
     final subtitle = subtitleParts.isEmpty ? 'Sin mensajes todavía' : subtitleParts.join(' · ');
     final unreadStyle = hasUnread ? const TextStyle(fontWeight: FontWeight.bold) : null;

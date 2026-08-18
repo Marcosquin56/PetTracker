@@ -1,5 +1,6 @@
 import '../../../reports/domain/entities/enums/pet_species.dart';
 import '../../domain/entities/conversation_summary_entity.dart';
+import 'chat_message_model.dart';
 
 class ConversationSummaryModel extends ConversationSummaryEntity {
   const ConversationSummaryModel({
@@ -13,6 +14,7 @@ class ConversationSummaryModel extends ConversationSummaryEntity {
     required super.lastMessageContent,
     required super.lastMessageAt,
     required super.updatedAt,
+    super.lastMessageType,
     super.unreadCount,
   });
 
@@ -32,6 +34,7 @@ class ConversationSummaryModel extends ConversationSummaryEntity {
       lastMessageContent: lastMessage?['content'] as String?,
       lastMessageAt:
           lastMessage == null ? null : DateTime.parse(lastMessage['createdAt'] as String).toUtc(),
+      lastMessageType: lastMessage == null ? null : ChatMessageModel.fromJson(lastMessage).type,
       updatedAt: DateTime.parse(json['updatedAt'] as String).toUtc(),
       unreadCount: json['unreadCount'] as int? ?? 0,
     );

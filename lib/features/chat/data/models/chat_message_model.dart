@@ -7,6 +7,11 @@ class ChatMessageModel extends ChatMessageEntity {
     required super.senderId,
     required super.content,
     required super.createdAt,
+    super.type,
+    super.attachmentUrl,
+    super.attachmentName,
+    super.attachmentMimeType,
+    super.attachmentDurationMs,
   });
 
   factory ChatMessageModel.fromJson(Map<String, dynamic> json) {
@@ -16,6 +21,18 @@ class ChatMessageModel extends ChatMessageEntity {
       senderId: json['senderId'] as String,
       content: json['content'] as String,
       createdAt: DateTime.parse(json['createdAt'] as String).toUtc(),
+      type: _typeFromApiValue(json['type'] as String?),
+      attachmentUrl: json['attachmentUrl'] as String?,
+      attachmentName: json['attachmentName'] as String?,
+      attachmentMimeType: json['attachmentMimeType'] as String?,
+      attachmentDurationMs: json['attachmentDurationMs'] as int?,
+    );
+  }
+
+  static ChatMessageType _typeFromApiValue(String? value) {
+    return ChatMessageType.values.firstWhere(
+      (type) => type.name == value,
+      orElse: () => ChatMessageType.text,
     );
   }
 }

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/network_providers.dart';
+import '../data/datasources/audio_recorder_service.dart';
 import '../data/datasources/chat_remote_datasource.dart';
 import '../data/datasources/chat_socket_service.dart';
 import '../data/models/chat_message_model.dart';
@@ -39,6 +40,14 @@ final unreadChatsCountProvider = Provider.autoDispose((ref) {
 /// salir de la pantalla (autoDispose).
 final chatSocketServiceProvider = Provider.autoDispose<ChatSocketService>((ref) {
   final service = ChatSocketService();
+  ref.onDispose(service.dispose);
+  return service;
+});
+
+/// Un grabador de audio por pantalla de chat abierta, mismo ciclo de vida
+/// que el socket.
+final audioRecorderServiceProvider = Provider.autoDispose<AudioRecorderService>((ref) {
+  final service = AudioRecorderService();
   ref.onDispose(service.dispose);
   return service;
 });
@@ -105,6 +114,26 @@ class ChatController extends AutoDisposeFamilyNotifier<ChatState, String> {
     final trimmed = content.trim();
     if (trimmed.isEmpty) return;
     ref.read(chatSocketServiceProvider).sendMessage(_conversationId, trimmed);
+  }
+
+  /// Sube el adjunto y crea el mensaje; no lo agrega a mano a `state` — el
+  /// propio socket (ya unido a esta conversación) recibe el eco del backend
+  /// por `newMessage`, igual que con un mensaje de texto.
+  Future<void> sendAttachment({
+    required String filePath,
+    required String fileName,
+    required String type,
+    String? caption,
+    int? durationMs,
+  }) async {
+    await ref.read(chatRepositoryProvider).uploadAttachment(
+          _conversationId,
+          filePath: filePath,
+          fileName: fileName,
+          type: type,
+          caption: caption,
+          durationMs: durationMs,
+        );
   }
 
   /// No crítico si falla: el contador de no-leídos queda desactualizado

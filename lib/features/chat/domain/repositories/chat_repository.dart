@@ -14,4 +14,15 @@ abstract class ChatRepository {
 
   /// Marca la conversación como leída hasta ahora (limpia su no-leídos).
   Future<void> markAsRead(String conversationId);
+
+  /// Sube un adjunto y crea el mensaje. `type` es "image", "audio" o "file";
+  /// `durationMs` solo aplica a "audio".
+  Future<ChatMessageEntity> uploadAttachment(
+    String conversationId, {
+    required String filePath,
+    required String fileName,
+    required String type,
+    String? caption,
+    int? durationMs,
+  });
 }
