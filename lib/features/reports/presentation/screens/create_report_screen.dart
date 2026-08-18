@@ -234,8 +234,9 @@ class _LocationTile extends StatelessWidget {
       return ListTile(
         contentPadding: EdgeInsets.zero,
         leading: Icon(Icons.location_off, color: Theme.of(context).colorScheme.error),
-        title: const Text('Sin permiso de ubicación'),
-        subtitle: const Text('Actívalo en los ajustes del sistema para poder reportar.'),
+        title: const Text('No pudimos obtener tu ubicación'),
+        subtitle: const Text('Revisá que el GPS esté activo y que le diste permiso a la app. Tocá para reintentar.'),
+        onTap: notifier.retryLocation,
       );
     }
 

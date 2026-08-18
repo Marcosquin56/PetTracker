@@ -28,14 +28,25 @@ class LocationService {
         permission == LocationPermission.whileInUse;
   }
 
-  /// `null` si no hay permiso o el usuario lo niega al pedirlo.
+  /// `null` si no hay permiso, el usuario lo niega al pedirlo, o no se pudo
+  /// conseguir un fix (p. ej. sin señal GPS estando adentro).
   Future<GeoLocation?> getCurrentLocation() async {
     if (!await requestPermission()) return null;
 
-    final position = await Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
-    );
-
-    return GeoLocation(latitude: position.latitude, longitude: position.longitude);
+    try {
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 15),
+        ),
+      );
+      return GeoLocation(latitude: position.latitude, longitude: position.longitude);
+    } catch (_) {
+      // Sin fix en el tiempo dado (típico estando adentro): la última
+      // posición conocida por el sistema suele alcanzar para un reporte.
+      final lastKnown = await Geolocator.getLastKnownPosition();
+      if (lastKnown == null) return null;
+      return GeoLocation(latitude: lastKnown.latitude, longitude: lastKnown.longitude);
+    }
   }
 }

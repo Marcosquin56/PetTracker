@@ -86,9 +86,19 @@ class CreateReportController extends AutoDisposeNotifier<CreateReportFormState> 
   }
 
   Future<void> _resolveLocation() async {
-    final location = await ref.read(locationServiceProvider).getCurrentLocation();
+    state = state.copyWith(isResolvingLocation: true);
+    GeoLocation? location;
+    try {
+      location = await ref.read(locationServiceProvider).getCurrentLocation();
+    } catch (_) {
+      location = null;
+    }
     state = state.copyWith(location: location, isResolvingLocation: false);
   }
+
+  /// Reintenta resolver la ubicación (p. ej. después de que el usuario activa
+  /// el GPS o da el permiso desde los ajustes del sistema).
+  Future<void> retryLocation() => _resolveLocation();
 
   void setSpecies(PetSpecies species) => state = state.copyWith(species: species);
 
