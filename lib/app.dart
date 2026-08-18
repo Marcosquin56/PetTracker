@@ -3,12 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'features/notifications/application/push_notifications_listener.dart';
 
 class PetTrackerApp extends ConsumerWidget {
   const PetTrackerApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(pushNotificationsSetupProvider);
     final router = ref.watch(appRouterProvider);
 
     return MaterialApp.router(

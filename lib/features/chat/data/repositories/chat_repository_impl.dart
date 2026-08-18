@@ -19,4 +19,7 @@ class ChatRepositoryImpl implements ChatRepository {
 
   @override
   Future<List<ConversationSummaryEntity>> getConversations() => _remote.getConversations();
+
+  @override
+  Future<void> markAsRead(String conversationId) => _remote.markAsRead(conversationId);
 }

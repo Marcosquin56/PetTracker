@@ -13,6 +13,7 @@ class ConversationSummaryModel extends ConversationSummaryEntity {
     required super.lastMessageContent,
     required super.lastMessageAt,
     required super.updatedAt,
+    super.unreadCount,
   });
 
   factory ConversationSummaryModel.fromJson(Map<String, dynamic> json) {
@@ -32,6 +33,7 @@ class ConversationSummaryModel extends ConversationSummaryEntity {
       lastMessageAt:
           lastMessage == null ? null : DateTime.parse(lastMessage['createdAt'] as String).toUtc(),
       updatedAt: DateTime.parse(json['updatedAt'] as String).toUtc(),
+      unreadCount: json['unreadCount'] as int? ?? 0,
     );
   }
 }

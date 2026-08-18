@@ -126,7 +126,7 @@ class ProfileScreen extends ConsumerWidget {
                 child: EmptyState(icon: Icons.error_outline, message: 'No se pudieron cargar tus reportes.\n$error'),
               ),
             ),
-            const SliverToBoxAdapter(child: SizedBox(height: 24)),
+            SliverToBoxAdapter(child: SizedBox(height: 24 + MediaQuery.paddingOf(context).bottom)),
           ],
         ),
       ),

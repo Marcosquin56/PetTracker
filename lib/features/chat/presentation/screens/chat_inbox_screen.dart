@@ -82,12 +82,14 @@ class _ConversationTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasUnread = conversation.hasUnread;
     final title = conversation.otherUserDisplayName ?? 'Usuario';
     final subtitleParts = [
       if (conversation.petName != null) conversation.petName!,
       if (conversation.lastMessageContent != null) conversation.lastMessageContent!,
     ];
     final subtitle = subtitleParts.isEmpty ? 'Sin mensajes todavía' : subtitleParts.join(' · ');
+    final unreadStyle = hasUnread ? const TextStyle(fontWeight: FontWeight.bold) : null;
 
     return ListTile(
       leading: CircleAvatar(
@@ -95,11 +97,25 @@ class _ConversationTile extends StatelessWidget {
             conversation.otherUserPhotoUrl != null ? NetworkImage(conversation.otherUserPhotoUrl!) : null,
         child: conversation.otherUserPhotoUrl == null ? const Icon(Icons.person_outline) : null,
       ),
-      title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
-      subtitle: Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis),
-      trailing: Text(
-        _formatTimestamp(conversation.lastMessageAt ?? conversation.updatedAt),
-        style: Theme.of(context).textTheme.bodySmall,
+      title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: unreadStyle),
+      subtitle: Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: unreadStyle),
+      trailing: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Text(
+            _formatTimestamp(conversation.lastMessageAt ?? conversation.updatedAt),
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          if (hasUnread) ...[
+            const SizedBox(height: 6),
+            Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(color: Theme.of(context).colorScheme.error, shape: BoxShape.circle),
+            ),
+          ],
+        ],
       ),
       onTap: () => context.push('/chat/${conversation.id}'),
     );

@@ -37,4 +37,8 @@ class ChatRemoteDataSource {
     );
     return response.data!.map((e) => ChatMessageModel.fromJson(e as Map<String, dynamic>)).toList();
   }
+
+  Future<void> markAsRead(String conversationId) async {
+    await _dio.post<void>('/chat/conversations/$conversationId/read');
+  }
 }

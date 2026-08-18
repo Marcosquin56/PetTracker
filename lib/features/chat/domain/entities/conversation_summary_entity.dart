@@ -17,6 +17,7 @@ class ConversationSummaryEntity extends Equatable {
     required this.lastMessageContent,
     required this.lastMessageAt,
     required this.updatedAt,
+    this.unreadCount = 0,
   });
 
   final String id;
@@ -29,6 +30,9 @@ class ConversationSummaryEntity extends Equatable {
   final String? lastMessageContent;
   final DateTime? lastMessageAt;
   final DateTime updatedAt;
+  final int unreadCount;
+
+  bool get hasUnread => unreadCount > 0;
 
   @override
   List<Object?> get props => [
@@ -42,5 +46,6 @@ class ConversationSummaryEntity extends Equatable {
         lastMessageContent,
         lastMessageAt,
         updatedAt,
+        unreadCount,
       ];
 }

@@ -181,7 +181,7 @@ class PublicProfileScreen extends ConsumerWidget {
                 loading: () => const SliverToBoxAdapter(child: SizedBox.shrink()),
                 error: (error, _) => const SliverToBoxAdapter(child: SizedBox.shrink()),
               ),
-              const SliverToBoxAdapter(child: SizedBox(height: 24)),
+              SliverToBoxAdapter(child: SizedBox(height: 24 + MediaQuery.paddingOf(context).bottom)),
             ],
           ),
         ),

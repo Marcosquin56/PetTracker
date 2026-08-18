@@ -11,4 +11,7 @@ abstract class ChatRepository {
 
   /// Conversaciones del usuario, más actividad reciente primero.
   Future<List<ConversationSummaryEntity>> getConversations();
+
+  /// Marca la conversación como leída hasta ahora (limpia su no-leídos).
+  Future<void> markAsRead(String conversationId);
 }

@@ -24,6 +24,17 @@ final conversationsProvider = FutureProvider.autoDispose((ref) {
   return ref.watch(chatRepositoryProvider).getConversations();
 });
 
+/// Total de mensajes no leídos entre todas las conversaciones, para el
+/// puntito de la pestaña "Chats" de la barra inferior. `0` mientras carga o
+/// si falla — el detalle real ya se ve dentro del inbox.
+final unreadChatsCountProvider = Provider.autoDispose((ref) {
+  return ref.watch(conversationsProvider).valueOrNull?.fold<int>(
+        0,
+        (total, conversation) => total + conversation.unreadCount,
+      ) ??
+      0;
+});
+
 /// Una conexión de socket por pantalla de chat abierta — se cierra sola al
 /// salir de la pantalla (autoDispose).
 final chatSocketServiceProvider = Provider.autoDispose<ChatSocketService>((ref) {
@@ -72,6 +83,7 @@ class ChatController extends AutoDisposeFamilyNotifier<ChatState, String> {
     try {
       final history = await ref.read(chatRepositoryProvider).getMessages(conversationId);
       state = state.copyWith(messages: history.reversed.toList(), isLoading: false);
+      unawaited(_markAsRead(conversationId));
     } catch (error) {
       state = state.copyWith(isLoading: false, error: error);
     }
@@ -93,5 +105,14 @@ class ChatController extends AutoDisposeFamilyNotifier<ChatState, String> {
     final trimmed = content.trim();
     if (trimmed.isEmpty) return;
     ref.read(chatSocketServiceProvider).sendMessage(_conversationId, trimmed);
+  }
+
+  /// No crítico si falla: el contador de no-leídos queda desactualizado
+  /// hasta que se vuelva a abrir el inbox o llegue un mensaje nuevo.
+  Future<void> _markAsRead(String conversationId) async {
+    try {
+      await ref.read(chatRepositoryProvider).markAsRead(conversationId);
+      ref.invalidate(conversationsProvider);
+    } catch (_) {}
   }
 }
