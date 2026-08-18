@@ -2,10 +2,24 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timeago/timeago.dart' as timeago;
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../application/reports_providers.dart';
 import '../../domain/entities/pet_report_entity.dart';
 import '../utils/status_style.dart';
+
+/// Mismo patrón que AdoptionCentersListView/VetsListView: Google Maps con
+/// la ubicación como destino, la app de mapas del teléfono arma la ruta.
+Future<void> _openDirections(BuildContext context, PetReportEntity report) async {
+  final uri = Uri.parse(
+    'https://www.google.com/maps/dir/?api=1&destination=${report.location.latitude},${report.location.longitude}',
+  );
+  if (!await launchUrl(uri, mode: LaunchMode.externalApplication) && context.mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('No se pudo abrir Google Maps.')),
+    );
+  }
+}
 
 /// Card que "salta" desde abajo cuando se toca un marker en el mapa —
 /// resumen del reporte + acceso al detalle, sin abandonar el mapa.
@@ -91,6 +105,12 @@ class ReportMapPopupCard extends ConsumerWidget {
                       ),
                     ],
                   ),
+                ),
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  icon: Icon(Icons.directions, color: colorScheme.primary),
+                  tooltip: 'Cómo llegar',
+                  onPressed: () => _openDirections(context, report),
                 ),
                 IconButton(
                   visualDensity: VisualDensity.compact,

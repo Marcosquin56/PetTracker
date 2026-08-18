@@ -64,6 +64,19 @@ class _ReportDetailBodyState extends ConsumerState<_ReportDetailBody> {
     }
   }
 
+  /// Mismo patrón que AdoptionCentersListView/VetsListView: Google Maps con
+  /// la ubicación como destino, la app de mapas del teléfono arma la ruta.
+  Future<void> _openDirections(BuildContext context) async {
+    final uri = Uri.parse(
+      'https://www.google.com/maps/dir/?api=1&destination=${report.location.latitude},${report.location.longitude}',
+    );
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication) && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo abrir Google Maps.')),
+      );
+    }
+  }
+
   Future<void> _openChat(BuildContext context, WidgetRef ref) async {
     if (_isOpeningChat) return;
     setState(() => _isOpeningChat = true);
@@ -221,7 +234,16 @@ class _ReportDetailBodyState extends ConsumerState<_ReportDetailBody> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton.icon(
+                      onPressed: () => _openDirections(context),
+                      icon: const Icon(Icons.directions),
+                      label: const Text('Cómo llegar'),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   InkWell(
                     borderRadius: BorderRadius.circular(12),
                     onTap: () => context.push('/profile/${report.reporterId}'),
